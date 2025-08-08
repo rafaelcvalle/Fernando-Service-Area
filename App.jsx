@@ -3,16 +3,26 @@ import maplibregl from "maplibre-gl";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { Check, X, Upload, Map as MapIcon, ListFilter, RefreshCcw, Beaker } from "lucide-react";
+import citiesCsvUrl from "./cidades_filtradas_ng_ou_eversource.csv?url";
 
 // Offline-safe blank style
 const LOCAL_STYLE = {
   version: 8,
-  name: "blank-local",
-  sources: {},
-  layers: [
-    { id: "background", type: "background", paint: { "background-color": "#eef2ff" } },
-  ],
+  sources: {
+    osm: {
+      type: "raster",
+      tiles: [
+        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      ],
+      tileSize: 256,
+      attribution: "© OpenStreetMap contributors",
+    },
+  },
+  layers: [{ id: "osm", type: "raster", source: "osm" }],
 };
+
 
 // Polygon coordinates [lng, lat]
 const fernandoPolygon = [
@@ -112,6 +122,35 @@ export default function App() {
   const [preview, setPreview] = useState([]);
   const [testReport, setTestReport] = useState(null);
   const [didYouMean, setDidYouMean] = useState([]);
+
+  useEffect(() => {
+  async function loadCities() {
+    try {
+      // 1) se existir variável no Vercel, usa a planilha
+      const envUrl = import.meta.env?.VITE_CITIES_CSV_URL;
+      // 2) senão, usa o CSV que está no repositório
+      const url = envUrl || citiesCsvUrl;
+
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+
+      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+      const rows = parsed.data || [];
+
+      // extrai coluna NAME, remove vazios e duplicados
+      const names = [...new Set(rows.map(r => (r.NAME || "").trim()).filter(Boolean))];
+
+      setCities(names);
+      setPreview(names.map((n, i) => ({ idx: i + 1, name: n })));
+    } catch (e) {
+      console.error("Failed to auto-load cities:", e);
+      // sem pânico: se der erro, o botão de upload continua funcionando como plano B
+    }
+  }
+
+  loadCities();
+}, []);
 
   useEffect(() => {
     if (mapInstance.current) return;
