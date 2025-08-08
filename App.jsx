@@ -285,11 +285,7 @@ export default function App() {
           <MapIcon className="w-6 h-6" />
           <h1 className="text-xl font-semibold">Fernando Service Area — City Checker</h1>
         </div>
-        <label className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white shadow cursor-pointer hover:bg-gray-100">
-          <Upload className="w-4 h-4" />
-          <span>Upload CSV/XLSX (99 cities)</span>
-          <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFile} />
-        </label>
+       
       </header>
 
       <main className="grid grid-cols-1 lg:grid-cols-3 gap-4">
