@@ -123,34 +123,38 @@ export default function App() {
   const [testReport, setTestReport] = useState(null);
   const [didYouMean, setDidYouMean] = useState([]);
 
-  useEffect(() => {
+useEffect(() => {
   async function loadCities() {
     try {
-      // 1) se existir variável no Vercel, usa a planilha
       const envUrl = import.meta.env?.VITE_CITIES_CSV_URL;
-      // 2) senão, usa o CSV que está no repositório
       const url = envUrl || citiesCsvUrl;
-
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
 
       const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
       const rows = parsed.data || [];
-
-      // extrai coluna NAME, remove vazios e duplicados
       const names = [...new Set(rows.map(r => (r.NAME || "").trim()).filter(Boolean))];
+
+      // 🔎 Debug – expõe no window e loga contagens
+      if (typeof window !== "undefined") {
+        window.__rawCities = rows;
+        window.__loadedCities = names;
+        console.log("RAW rows:", rows.length);
+        console.log("UNIQUE names:", names.length);
+        console.log("Has Lexington?", names.includes("Lexington"));
+        console.log("Has Burlington?", names.includes("Burlington"));
+      }
 
       setCities(names);
       setPreview(names.map((n, i) => ({ idx: i + 1, name: n })));
     } catch (e) {
       console.error("Failed to auto-load cities:", e);
-      // sem pânico: se der erro, o botão de upload continua funcionando como plano B
     }
   }
-
   loadCities();
 }, []);
+
 
   useEffect(() => {
     if (mapInstance.current) return;
