@@ -287,7 +287,7 @@ useEffect(() => {
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MapIcon className="w-6 h-6" />
-          <h1 className="text-xl font-semibold">Fernando Service Area — City Checker</h1>
+          <h1 className="text-xl font-semibold">1A Home Energy Service Area — City Checker</h1>
         </div>
        
       </header>
@@ -336,7 +336,7 @@ useEffect(() => {
             <div className={`flex items-center gap-2 rounded-xl px-3 py-3 border ${result ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
               {result ? <Check className="w-5 h-5 text-green-600" /> : <X className="w-5 h-5 text-red-600" />}
               <div className="font-medium">
-                {result ? "City COVERED by the Fernando Service Area" : "City OUTSIDE the Fernando Service Area"}
+                {result ? "City COVERED by the 1A Home Energy Service Area" : "City OUTSIDE the 1A Home Energy Service Area"}
               </div>
             </div>
           )}
