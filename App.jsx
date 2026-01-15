@@ -302,7 +302,7 @@ useEffect(() => {
         <div className="bg-white rounded-2xl shadow p-4 flex flex-col gap-4">
           <div className="flex items-center gap-2">
             <ListFilter className="w-4 h-4" />
-            <h2 className="font-medium">Check if a city is within the Fernando Service Area</h2>
+            <h2 className="font-medium">Check if a city is within the 1A Home Energy Service Area</h2>
           </div>
 
           <div className="flex gap-2 items-center">
