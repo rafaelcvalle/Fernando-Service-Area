@@ -363,7 +363,7 @@ useEffect(() => {
             {cities.length === 0 ? (
               <>
                 <p>
-                  Upload <strong>cidades_filtradas_ng_ou_eversource.csv</strong> (column <code className="mx-1">NAME</code>) to enable lookups.
+                  Upload <strong>cidades_area_atendida_1a_home_energy.csv</strong> (column <code className="mx-1">NAME</code>) to enable lookups.
                 </p>
                 <p className="mt-2">Tip: you can export this list directly from your validated QGIS/CSV.</p>
               </>
