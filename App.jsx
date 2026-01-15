@@ -3,7 +3,7 @@ import maplibregl from "maplibre-gl";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { Check, X, Upload, Map as MapIcon, ListFilter, RefreshCcw, Beaker } from "lucide-react";
-import citiesCsvUrl from "./cidades_filtradas_ng_ou_eversource.csv?url";
+import citiesCsvUrl from "./cidades_area_atendida_1a_home_energy.csv?url";
 
 // Offline-safe blank style
 const LOCAL_STYLE = {
