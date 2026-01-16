@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import { Check, X, Upload, Map as MapIcon, ListFilter, RefreshCcw, Beaker } from "lucide-react";
+import { Check, X, Upload, Map as MapIcon, ListFilter, RefreshCcw } from "lucide-react";
 import citiesCsvUrl from "./cidades_area_atendida_1a_home_energy.csv?url";
 
 // Offline-safe blank style
@@ -22,7 +22,6 @@ const LOCAL_STYLE = {
   },
   layers: [{ id: "osm", type: "raster", source: "osm" }],
 };
-
 
 // Polygon coordinates [lng, lat]
 const fernandoPolygon = [
@@ -65,9 +64,10 @@ const fernandoPolygon = [
   [-72.2661282, 42.2637478],
   [-72.3622586, 42.1569446],
 ];
+
 const areaFeature = {
   type: "Feature",
-  properties: { name: "Fernando Service Area" },
+  properties: { name: "1A Home Energy Service Area" },
   geometry: { type: "Polygon", coordinates: [fernandoPolygon] },
 };
 
@@ -83,9 +83,12 @@ function normalizeName(s) {
 
 // Levenshtein + similarity for fuzzy suggestions
 function levenshtein(a, b) {
-  a = a || ""; b = b || "";
-  const m = a.length, n = b.length;
-  if (m === 0) return n; if (n === 0) return m;
+  a = a || "";
+  b = b || "";
+  const m = a.length,
+    n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
   const dp = Array.from({ length: m + 1 }, () => new Array(n + 1));
   for (let i = 0; i <= m; i++) dp[i][0] = i;
   for (let j = 0; j <= n; j++) dp[0][j] = j;
@@ -94,18 +97,15 @@ function levenshtein(a, b) {
     for (let j = 1; j <= n; j++) {
       const cb = b.charCodeAt(j - 1);
       const cost = ca === cb ? 0 : 1;
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost
-      );
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
     }
   }
   return dp[m][n];
 }
 
 function similarity(a, b) {
-  const A = normalizeName(a), B = normalizeName(b);
+  const A = normalizeName(a),
+    B = normalizeName(b);
   const maxLen = Math.max(A.length, B.length) || 1;
   return 1 - levenshtein(A, B) / maxLen;
 }
@@ -127,59 +127,64 @@ function extractCityNames(rows) {
 }
 
 function computeBounds(coords) {
-  let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+  let minLng = Infinity,
+    minLat = Infinity,
+    maxLng = -Infinity,
+    maxLat = -Infinity;
   for (const [lng, lat] of coords) {
     if (lng < minLng) minLng = lng;
     if (lat < minLat) minLat = lat;
     if (lng > maxLng) maxLng = lng;
     if (lat > maxLat) maxLat = lat;
   }
-  return [[minLng, minLat], [maxLng, maxLat]];
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ];
 }
 
 export default function App() {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const fittedRef = useRef(false);
+
   const [cities, setCities] = useState([]);
   const [query, setQuery] = useState("");
   const [result, setResult] = useState(null);
   const [preview, setPreview] = useState([]);
-  const [testReport, setTestReport] = useState(null);
   const [didYouMean, setDidYouMean] = useState([]);
 
-useEffect(() => {
-  async function loadCities() {
-    try {
-      const envUrl = import.meta.env?.VITE_CITIES_CSV_URL;
-      const url = envUrl || citiesCsvUrl;
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
+  useEffect(() => {
+    async function loadCities() {
+      try {
+        const envUrl = import.meta.env?.VITE_CITIES_CSV_URL;
+        const url = envUrl || citiesCsvUrl;
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
 
-      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
-      const rows = parsed.data || [];
-      const names = [...new Set(rows.map(r => (r.NAME || "").trim()).filter(Boolean))];
+        const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+        const rows = parsed.data || [];
+        const names = [...new Set(rows.map((r) => (r.NAME || "").trim()).filter(Boolean))];
 
-      // 🔎 Debug – expõe no window e loga contagens
-      if (typeof window !== "undefined") {
-        window.__rawCities = rows;
-        window.__loadedCities = names;
-        console.log("RAW rows:", rows.length);
-        console.log("UNIQUE names:", names.length);
-        console.log("Has Lexington?", names.includes("Lexington"));
-        console.log("Has Burlington?", names.includes("Burlington"));
+        // 🔎 Debug – exposes in window + logs counts
+        if (typeof window !== "undefined") {
+          window.__rawCities = rows;
+          window.__loadedCities = names;
+          console.log("RAW rows:", rows.length);
+          console.log("UNIQUE names:", names.length);
+          console.log("Has Lexington?", names.includes("Lexington"));
+          console.log("Has Burlington?", names.includes("Burlington"));
+        }
+
+        setCities(names);
+        setPreview(names.map((n, i) => ({ idx: i + 1, name: n })));
+      } catch (e) {
+        console.error("Failed to auto-load cities:", e);
       }
-
-      setCities(names);
-      setPreview(names.map((n, i) => ({ idx: i + 1, name: n })));
-    } catch (e) {
-      console.error("Failed to auto-load cities:", e);
     }
-  }
-  loadCities();
-}, []);
-
+    loadCities();
+  }, []);
 
   useEffect(() => {
     if (mapInstance.current) return;
@@ -195,21 +200,41 @@ useEffect(() => {
     function ensureAreaLayer() {
       const map = mapInstance.current;
       if (!map) return;
-      if (!map.getSource("fernando-area")) {
-        map.addSource("fernando-area", {
+
+      if (!map.getSource("service-area")) {
+        map.addSource("service-area", {
           type: "geojson",
           data: { type: "FeatureCollection", features: [areaFeature] },
         });
       }
+
       if (!map.getLayer("area-fill")) {
-        map.addLayer({ id: "area-fill", type: "fill", source: "fernando-area", paint: { "fill-color": "#ef4444", "fill-opacity": 0.12 } });
+        map.addLayer({
+          id: "area-fill",
+          type: "fill",
+          source: "service-area",
+          paint: { "fill-color": "#ef4444", "fill-opacity": 0.12 },
+        });
       }
+
       if (!map.getLayer("area-outline")) {
-        map.addLayer({ id: "area-outline", type: "line", source: "fernando-area", paint: { "line-color": "#ef4444", "line-width": 2 } });
+        map.addLayer({
+          id: "area-outline",
+          type: "line",
+          source: "service-area",
+          paint: { "line-color": "#ef4444", "line-width": 2 },
+        });
       }
+
       if (!fittedRef.current) {
         const [[minLng, minLat], [maxLng, maxLat]] = computeBounds(fernandoPolygon);
-        map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 20, animate: false });
+        map.fitBounds(
+          [
+            [minLng, minLat],
+            [maxLng, maxLat],
+          ],
+          { padding: 20, animate: false }
+        );
         fittedRef.current = true;
       }
     }
@@ -217,7 +242,10 @@ useEffect(() => {
     mapInstance.current.on("load", ensureAreaLayer);
     mapInstance.current.on("styledata", ensureAreaLayer);
 
-    return () => { mapInstance.current?.remove(); mapInstance.current = null; };
+    return () => {
+      mapInstance.current?.remove();
+      mapInstance.current = null;
+    };
   }, []);
 
   const suggestions = useMemo(() => {
@@ -240,7 +268,8 @@ useEffect(() => {
           const uniq = extractCityNames(rows);
           setCities(uniq);
           setPreview(uniq.map((n, i) => ({ idx: i + 1, name: n })));
-          setResult(null); setTestReport(null); setDidYouMean([]);
+          setResult(null);
+          setDidYouMean([]);
         },
         error: (err) => alert("Error reading CSV: " + err?.message),
       });
@@ -256,7 +285,8 @@ useEffect(() => {
           const uniq = extractCityNames(rows);
           setCities(uniq);
           setPreview(uniq.map((n, i) => ({ idx: i + 1, name: n })));
-          setResult(null); setTestReport(null); setDidYouMean([]);
+          setResult(null);
+          setDidYouMean([]);
         } catch (err) {
           alert("Error reading Excel: " + (err?.message || err));
         }
@@ -273,38 +303,17 @@ useEffect(() => {
     setResult(exists ? true : false);
 
     if (!exists && name && cities.length > 0) {
-      const top3 = topFuzzySuggestions(name, cities, 3).filter(s => s.score >= 0.7);
+      const top3 = topFuzzySuggestions(name, cities, 3).filter((s) => s.score >= 0.7);
       setDidYouMean(top3);
     } else {
       setDidYouMean([]);
     }
   }
 
-  function clearAll() { setQuery(""); setResult(null); setDidYouMean([]); }
-
-  function runSelfTests() {
-    const tests = [];
-    if (cities.length > 0) {
-      const sample = cities[0];
-      tests.push({ name: `Existing city: ${sample}`, pass: cities.includes(sample) });
-      const miss = sample.slice(0, Math.max(1, sample.length - 1));
-      const sugg = topFuzzySuggestions(miss, cities, 1)[0];
-      tests.push({ name: "Fuzzy suggestion for near-miss", pass: !!sugg && normalizeName(sugg.name) === normalizeName(sample) });
-    } else {
-      tests.push({ name: "CSV loaded", pass: false, info: "Upload the CSV before running tests." });
-    }
-    tests.push({ name: "Excluded (Concord)", pass: !cities.map(normalizeName).includes(normalizeName("Concord")) });
-    tests.push({ name: "Excluded (Hudson)", pass: !cities.map(normalizeName).includes(normalizeName("Hudson")) });
-    tests.push({ name: "Excluded (Littleton)", pass: !cities.map(normalizeName).includes(normalizeName("Littleton")) });
-
-    if (cities.length > 0) {
-      const any = cities[0];
-      tests.push({ name: "Case-insensitive match", pass: cities.map(normalizeName).includes(normalizeName(any.toUpperCase())) });
-      tests.push({ name: "Extra spaces tolerated", pass: cities.map(normalizeName).includes(normalizeName(`  ${any}  `)) });
-    }
-
-    const passed = tests.every((t) => t.pass === true);
-    setTestReport({ passed, tests });
+  function clearAll() {
+    setQuery("");
+    setResult(null);
+    setDidYouMean([]);
   }
 
   return (
@@ -314,7 +323,6 @@ useEffect(() => {
           <MapIcon className="w-6 h-6" />
           <h1 className="text-xl font-semibold">1A Home Energy Service Area — City Checker</h1>
         </div>
-       
       </header>
 
       <main className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -335,7 +343,11 @@ useEffect(() => {
               className="flex-1 border rounded-xl px-3 py-2 focus:outline-none focus:ring w-full"
               placeholder="Type a city name (e.g., Framingham)"
               value={query}
-              onChange={(e) => { setQuery(e.target.value); setResult(null); setDidYouMean([]); }}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setResult(null);
+                setDidYouMean([]);
+              }}
               list="city-suggestions"
             />
             <button
@@ -358,7 +370,11 @@ useEffect(() => {
           </datalist>
 
           {result !== null && (
-            <div className={`flex items-center gap-2 rounded-xl px-3 py-3 border ${result ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+            <div
+              className={`flex items-center gap-2 rounded-xl px-3 py-3 border ${
+                result ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
+              }`}
+            >
               {result ? <Check className="w-5 h-5 text-green-600" /> : <X className="w-5 h-5 text-red-600" />}
               <div className="font-medium">
                 {result ? "City COVERED by the 1A Home Energy Service Area" : "City OUTSIDE the 1A Home Energy Service Area"}
@@ -375,7 +391,10 @@ useEffect(() => {
                     key={s.name}
                     className="px-3 py-1 rounded-full bg-white border hover:bg-gray-50 text-sm"
                     title={`Similarity ${(s.score * 100).toFixed(0)}%`}
-                    onClick={() => { setQuery(s.name); checkCity(s.name); }}
+                    onClick={() => {
+                      setQuery(s.name);
+                      checkCity(s.name);
+                    }}
                   >
                     {s.name}
                   </button>
@@ -398,31 +417,7 @@ useEffect(() => {
               </p>
             )}
           </div>
-
-
-            <button
-              className="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200"
-              onClick={runSelfTests}
-              disabled={cities.length === 0}
-              title={cities.length === 0 ? "Upload the CSV first" : "Run tests"}
-            >
-              Run tests
-            </button>
-            {testReport && (
-              <div className="mt-2">
-                <div className={`font-medium ${testReport.passed ? "text-green-700" : "text-red-700"}`}>
-                  {testReport.passed ? "All tests passed" : "Some tests failed"}
-                </div>
-                <ul className="list-disc pl-5 mt-1">
-                  {testReport.tests.map((t, idx) => (
-                    <li key={idx} className={t.pass ? "text-green-700" : "text-red-700"}>
-                      {t.name}: {t.pass ? "OK" : "Failed"}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+        </div>
       </main>
 
       <section className="bg-white rounded-2xl shadow p-4 mt-4">
