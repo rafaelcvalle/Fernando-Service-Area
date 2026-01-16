@@ -446,9 +446,7 @@ export default function App() {
         )}
       </section>
 
-      <footer className="text-xs text-gray-500 mt-4">
-        <p>Tip: to add future regions (e.g., “João Service Area”), swap the CSV and/or polygon. I can extend this to multiple technicians.</p>
-      </footer>
+      
     </div>
   );
 }
