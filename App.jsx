@@ -423,7 +423,6 @@ useEffect(() => {
               </div>
             )}
           </div>
-        </div>
       </main>
 
       <section className="bg-white rounded-2xl shadow p-4 mt-4">
