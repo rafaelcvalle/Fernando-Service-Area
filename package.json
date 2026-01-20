@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "prebuild": "node scripts/validate_cities_csv.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173"
